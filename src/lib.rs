@@ -94,7 +94,7 @@ impl Scene {
 
         for j in 0..self.height {
             for i in 0..self.width {
-                let c = pixel_array[(i + j * self.width) as usize];
+                let c = pixel_array[(i + j * self.width) as usize].gamma_correction(2.2);
 
                 file.write(format!(
                     "{} {} {}\n",
