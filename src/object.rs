@@ -70,16 +70,15 @@ impl Object {
         1.0 / std::f32::consts::PI
     }
 
-    pub fn incident_flux(&self, at: V3) -> Ray {
-        loop {
-            let p = V3(rand::random::<f32>(), rand::random::<f32>(), rand::random::<f32>()).scale(2.0) - V3(1.0, 1.0, 1.0);
-            if p.square_norm() < 1.0 {
-                return Ray {
-                    origin: at,
-                    direction: V3U::from_v3(p),
-                };
-            }
-        }        
+    pub fn incident_flux(&self, normal: V3U) -> V3U {
+        let u = if normal.x().abs() > 0.001 { V3U::unsafe_new(0.0, 1.0, 0.0) } else { V3U::unsafe_new(0.0, 0.0, 1.0) };
+        let v = normal.cross(u);
+
+        let theta = (2.0 * rand::random::<f32>() - 1.0) * std::f32::consts::PI / 2.0;
+        let phi = 2.0 * std::f32::consts::PI * rand::random::<f32>();
+        let vec = u.as_v3().scale(theta.sin() * phi.cos()) + v.as_v3().scale(theta.sin() * phi.sin()) + normal.as_v3().scale(theta);
+        
+        V3U::unsafe_new(vec.x(), vec.y(), vec.z())
     }
 
     pub fn flux_prob(&self, normal: V3U, ray: &Ray) -> f32 {

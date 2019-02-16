@@ -91,6 +91,22 @@ impl Sub for V3 {
 pub struct V3U(V3);
 
 impl V3U {
+    pub fn x(&self) -> f32 {
+        (self.0).0
+    }
+
+    pub fn y(&self) -> f32 {
+        (self.0).1
+    }
+
+    pub fn z(&self) -> f32 {
+        (self.0).2
+    }
+
+    pub fn unsafe_new(x: f32, y: f32, z: f32) -> V3U {
+        V3U(V3(x,y,z))
+    }
+
     pub fn from_v3(v: V3) -> V3U {
         V3U(v.normalize())
     }
@@ -102,5 +118,12 @@ impl V3U {
     pub fn dot(self, other: V3U) -> f32 {
         self.as_v3().dot(other.as_v3())
     }
-}
 
+    pub fn cross(self, other: V3U) -> V3U {
+        V3U(V3(
+            self.y() * other.z() - self.z() * other.y(),
+            self.z() * other.x() - self.x() * other.z(),
+            self.x() * other.y() - self.y() * other.x(),
+        ))
+    }
+}

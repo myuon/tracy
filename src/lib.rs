@@ -43,7 +43,7 @@ impl Scene {
             radiance += record.object.emission.blend(weight);
             radiance = radiance.blend(record.object.color);
 
-            let iflux = record.object.incident_flux(record.point);
+            let iflux = record.object.incident_flux(record.normal);
             weight = weight.blend(record.object.color);
 
             let roulette_threshold = 0.5;
@@ -51,7 +51,10 @@ impl Scene {
                 break;
             }
 
-            ray = iflux;
+            ray = Ray {
+                origin: record.point,
+                direction: iflux,
+            };
             weight /= roulette_threshold;
         }
 
