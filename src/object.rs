@@ -37,13 +37,14 @@ pub struct HitRecord<'a> {
 
 impl Object {
     pub fn check_hit(&self, ray: &Ray) -> Option<HitRecord> {
-        let b = ray.direction.as_v3().dot(ray.origin - self.center);
-        let c = (ray.origin - self.center).square_norm() - self.radius*self.radius;
+        let oc = ray.origin - self.center;
+        let b = ray.direction.as_v3().dot(oc);
+        let c = oc.square_norm() - self.radius*self.radius;
         let discriminant = b * b - c;
 
         if discriminant > 0.0 {
             let t = -b - discriminant.sqrt();
-            if t > 0.0 {
+            if t > 0.0001 {
                 return Some(HitRecord{
                     at: t,
                     point: ray.extend_at(t),
@@ -53,7 +54,7 @@ impl Object {
             }
 
             let t = -b + discriminant.sqrt();
-            if t > 0.0 {
+            if t > 0.0001 {
                 return Some(HitRecord{
                     at: t,
                     point: ray.extend_at(t),
@@ -70,7 +71,7 @@ impl Object {
         1.0 / std::f32::consts::PI
     }
 
-    pub fn incident_flux(&self, normal: V3U) -> V3U {
+    pub fn incident_flux(normal: V3U) -> V3U {
         let u = if normal.x().abs() > 0.001 { V3U::unsafe_new(0.0, 1.0, 0.0) } else { V3U::unsafe_new(1.0, 0.0, 0.0) };
         let u = u.cross(normal);
         let v = normal.cross(u);
@@ -85,4 +86,10 @@ impl Object {
     pub fn flux_prob(&self, normal: V3U, ray: &Ray) -> f32 {
         normal.dot(ray.direction) / std::f32::consts::PI
     }
+}
+
+#[quickcheck]
+fn incident_flux_is_inside_the_hemisphere(normal: V3U) -> bool {
+    let r = Object::incident_flux(normal);
+    normal.dot(r) >= 0.0
 }

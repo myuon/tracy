@@ -45,7 +45,7 @@ impl Scene {
             radiance += record.object.emission.blend(weight);
             radiance = radiance.blend(record.object.color);
 
-            let iflux = record.object.incident_flux(record.normal);
+            let iflux = Object::incident_flux(record.normal);
             weight = weight.blend(record.object.color);
 
             let roulette_threshold = 0.5;
