@@ -31,13 +31,8 @@ impl Scene {
 
     fn get_hit_point(&self, ray: &Ray) -> Option<HitRecord> {
         self.objects.iter()
-            .map(|obj| obj.check_hit(ray))
-            .min_by(|r1,r2|
-                r1.clone()
-                    .map(|r| r.at)
-                    .partial_cmp(&r2.clone().map(|r| r.at))
-                    .unwrap_or(std::cmp::Ordering::Equal))
-            .and_then(|v| v)
+            .flat_map(|obj| obj.check_hit(ray))
+            .min_by(|r1,r2| r1.at.partial_cmp(&r2.at).unwrap_or(std::cmp::Ordering::Equal))
     }
 
     fn calculate_ray(&self, mut ray: Ray) -> Color {
