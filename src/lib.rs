@@ -37,30 +37,32 @@ impl Scene {
             .min_by(|r1,r2| r1.at.partial_cmp(&r2.at).unwrap_or(std::cmp::Ordering::Equal))
     }
 
-    fn calculate_ray(&self, mut ray: Ray) -> Color {
-        let mut radiance = Color::black();
-        let mut weight = Color::new(1.0, 1.0, 1.0);
-
-        while let Some(record) = self.get_hit_point(&ray) {
-            radiance += record.object.emission.blend(weight);
-            radiance = radiance.blend(record.object.color);
-
-            let iflux = Object::incident_flux(record.normal);
-            weight = weight.blend(record.object.color);
-
-            let roulette_threshold = 0.5;
-            if Scene::rossian_roulette(roulette_threshold) {
-                break;
-            }
-
-            ray = Ray {
-                origin: record.point,
-                direction: iflux,
-            };
-            weight /= roulette_threshold;
+    fn radiance(&self, record: HitRecord) -> Color {
+        let roulette_threshold = 0.5;
+        if Scene::rossian_roulette(roulette_threshold) {
+            return record.object.emission;
         }
 
-        radiance
+        let iflux = Object::incident_flux(record.normal);
+        let ray = Ray {
+            origin: record.point,
+            direction: iflux,
+        };
+        
+        if let Some(record) = self.get_hit_point(&ray) {
+            return record.object.emission +
+                record.object.color.blend(self.radiance(record)).scale(1.0 / roulette_threshold);
+        } else {
+            return Color::black();
+        }
+    }
+
+    fn calculate_ray(&self, ray: Ray) -> Color {
+        if let Some(record) = self.get_hit_point(&ray) {
+            self.radiance(record)
+        } else {
+            Color::black()
+        }
     }
 
     fn render(&self) -> Vec<Color> {
