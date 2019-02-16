@@ -236,15 +236,21 @@ impl Scene {
     }
 
     fn render(&self) -> Vec<Color> {
+        let fov: f32 = 90.0;
         let mut pixels = vec![Color(0.0,0.0,0.0); (self.width * self.height) as usize];
         let pixel_array = pixels.as_mut_slice();
+
+        let from = V3(0.0, 0.0, -1.0 / 2.0 / (fov / 2.0).tan());
+        let aspect_ratio = self.height as f32 / self.width as f32;
 
         for j in 0..self.height {
             for i in 0..self.width {
                 for _ in 0..self.samples_per_pixel {
+                    let point_in_picture = V3(i as f32 / self.width as f32, j as f32 / aspect_ratio, 0.0);
+
                     pixel_array[(i + j * self.width) as usize] += self.calculate_ray(Ray {
-                        origin: V3(i as f32 / self.width as f32 + rand::random::<f32>(), j as f32 / self.height as f32 + rand::random::<f32>(), 0.0),
-                        direction: V3(0.0, 0.0, 1.0),
+                        origin: from,
+                        direction: point_in_picture - from,
                     });
                 }
 

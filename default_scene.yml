@@ -3,11 +3,11 @@ height: 150
 samples_per_pixel: 10
 objects:
   - center:
+      - 0.0
+      - 0.0
       - 5.0
-      - 5.0
-      - 10.0
     radius: 5.0
     lambertian:
       - 1.0
-      - 0.5
+      - 1.0
       - 1.0
