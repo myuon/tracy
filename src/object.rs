@@ -76,9 +76,9 @@ impl Object {
         let u = u.cross(normal);
         let v = normal.cross(u);
 
-        let theta = (2.0 * rand::random::<f32>() - 1.0) * std::f32::consts::PI / 2.0;
         let phi = 2.0 * std::f32::consts::PI * rand::random::<f32>();
-        let vec = u.as_v3().scale(theta.sin() * phi.cos()) + v.as_v3().scale(theta.sin() * phi.sin()) + normal.as_v3().scale(theta.cos());
+        let cos_theta = rand::random::<f32>().sqrt();
+        let vec = u.as_v3().scale(phi.cos() * cos_theta) + v.as_v3().scale(phi.sin() * cos_theta) + normal.as_v3().scale((1.0 - cos_theta * cos_theta).sqrt());
         
         V3U::unsafe_new(vec.x(), vec.y(), vec.z())
     }
