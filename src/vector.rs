@@ -45,6 +45,14 @@ impl V3 {
     pub fn normalize(&self) -> V3 {
         self.scale(1.0 / self.norm())
     }
+
+    pub fn elem_multiply(self, other: V3) -> V3 {
+        V3(
+            self.0 * other.0,
+            self.1 * other.1,
+            self.2 * other.2,
+        )
+    }
 }
 
 impl Add for V3 {

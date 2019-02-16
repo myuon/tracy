@@ -45,17 +45,19 @@ impl Scene {
         let mut weight = 0.5;
 
         while let Some(record) = self.get_hit_point(&ray) {
-            radiance += record.object.lambertian.scale(weight);
+            radiance += record.object.emission.scale(weight);
+            radiance = radiance.blend(record.object.color);
+
             let iflux = record.object.incident_flux(record.point);
             weight *= record.object.bsdf() * iflux.direction.dot(record.normal) / record.object.flux_prob(record.normal, &iflux);
 
             let roulette_threshold = 0.5;
             if Scene::rossian_roulette(roulette_threshold) {
-                return radiance;
+                break;
             }
 
             ray = iflux;
-            weight *= roulette_threshold;
+            weight /= roulette_threshold;
         }
 
         radiance

@@ -1,5 +1,5 @@
 
-use std::ops::{AddAssign, DivAssign};
+use std::ops::{Add, AddAssign, DivAssign};
 use crate::vector::V3;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -11,15 +11,15 @@ impl Color {
     }
 
     pub fn red(&self) -> u8 {
-        (self.0.x() * 255.0) as u8
+        (self.0.x().min(1.0) * 255.0) as u8
     }
 
     pub fn green(&self) -> u8 {
-        (self.0.y() * 255.0) as u8
+        (self.0.y().min(1.0) * 255.0) as u8
     }
 
     pub fn blue(&self) -> u8 {
-        (self.0.z() * 255.0) as u8
+        (self.0.z().min(1.0) * 255.0) as u8
     }
 
     pub fn gamma_correction(self, gamma: f32) -> Color {
@@ -32,6 +32,18 @@ impl Color {
 
     pub fn scale(self, k: f32) -> Color {
         Color(self.0.scale(k))
+    }
+
+    pub fn blend(self, other: Color) -> Color {
+        Color(self.0.elem_multiply(other.0))
+    }
+}
+
+impl Add for Color {
+    type Output = Color;
+
+    fn add(self, other: Color) -> Color {
+        Color(self.0 + other.0)
     }
 }
 

@@ -17,7 +17,14 @@ impl Ray {
 pub struct Object {
     pub center: V3,
     pub radius: f32,
-    pub lambertian: Color,
+    pub color: Color,
+    pub emission: Color,
+    pub material: Material,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Material {
+    Diffuse,
 }
 
 #[derive(Clone)]
