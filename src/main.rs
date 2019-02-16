@@ -36,6 +36,10 @@ impl V3 {
             self.2 * k,
         )
     }
+
+    fn normalize(&self) -> V3 {
+        self.scale(self.square_norm())
+    }
 }
 
 impl Add for V3 {
@@ -59,6 +63,23 @@ impl Sub for V3 {
             self.1 - other.1,
             self.2 - other.2,
         )
+    }
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+struct V3U(V3);
+
+impl V3U {
+    fn from_v3(v: V3) -> V3U {
+        V3U(v.normalize())
+    }
+
+    fn as_v3(self) -> V3 {
+        self.0
+    }
+
+    fn dot(self, other: V3U) -> f32 {
+        self.as_v3().dot(other.as_v3())
     }
 }
 
@@ -118,13 +139,13 @@ struct Object {
 struct HitRecord<'a> {
     at: f32,
     point: V3,
-    normal: V3,
+    normal: V3U,
     object: &'a Object,
 }
 
 impl Object {
     fn check_hit(&self, ray: &Ray) -> Option<HitRecord> {
-        let b = ray.direction.dot(ray.origin - self.center);
+        let b = ray.direction.as_v3().dot(ray.origin - self.center);
         let c = (ray.origin - self.center).square_norm() - self.radius*self.radius;
         let discriminant = b * b - c;
 
@@ -134,7 +155,7 @@ impl Object {
                 return Some(HitRecord{
                     at: t,
                     point: ray.extend_at(t),
-                    normal: ray.extend_at(t) - self.center,
+                    normal: V3U::from_v3(ray.extend_at(t) - self.center),
                     object: self,
                 });
             }
@@ -144,7 +165,7 @@ impl Object {
                 return Some(HitRecord{
                     at: t,
                     point: ray.extend_at(t),
-                    normal: ray.extend_at(t) - self.center,
+                    normal: V3U::from_v3(ray.extend_at(t) - self.center),
                     object: self,
                 });
             }
@@ -163,25 +184,25 @@ impl Object {
             if p.square_norm() < 1.0 {
                 return Ray {
                     origin: at,
-                    direction: p,
+                    direction: V3U::from_v3(p),
                 };
             }
         }        
     }
 
-    fn flux_prob(&self, normal: V3, ray: Ray) -> f32 {
-        normal.dot(ray.direction) / normal.norm() / ray.direction.norm() / std::f32::consts::PI
+    fn flux_prob(&self, normal: V3U, ray: Ray) -> f32 {
+        normal.dot(ray.direction) / std::f32::consts::PI
     }
 }
 
 struct Ray {
     origin: V3,
-    direction: V3,
+    direction: V3U,
 }
 
 impl Ray {
     fn extend_at(&self, k: f32) -> V3 {
-        self.origin + self.direction.scale(k)
+        self.origin + self.direction.as_v3().scale(k)
     }
 }
 
@@ -250,7 +271,7 @@ impl Scene {
 
                     pixel_array[(i + j * self.width) as usize] += self.calculate_ray(Ray {
                         origin: from,
-                        direction: point_in_picture - from,
+                        direction: V3U::from_v3(point_in_picture - from),
                     });
                 }
 
