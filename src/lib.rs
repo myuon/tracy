@@ -41,7 +41,7 @@ impl Scene {
     }
 
     fn calculate_ray(&self, mut ray: Ray) -> Color {
-        let mut radiance = Color(0.0, 0.0, 0.0);
+        let mut radiance = Color::black();
         let mut weight = 0.5;
 
         while let Some(record) = self.get_hit_point(&ray) {
@@ -63,7 +63,7 @@ impl Scene {
 
     fn render(&self) -> Vec<Color> {
         let fov: f32 = 90.0;
-        let mut pixels = vec![Color(0.0,0.0,0.0); (self.width * self.height) as usize];
+        let mut pixels = vec![Color::black(); (self.width * self.height) as usize];
         let pixel_array = pixels.as_mut_slice();
 
         let from = V3(0.0, 0.0, -1.0 / 2.0 / (fov / 2.0).tan());

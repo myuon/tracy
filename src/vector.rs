@@ -1,11 +1,23 @@
 use std::ops::{Sub, Add};
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct V3(pub f32, pub f32, pub f32);
 
 impl V3 {
     pub fn zero() -> V3 {
         V3(0.0, 0.0, 0.0)
+    }
+
+    pub fn x(&self) -> f32 {
+        self.0
+    }
+
+    pub fn y(&self) -> f32 {
+        self.1
+    }
+
+    pub fn z(&self) -> f32 {
+        self.2
     }
 
     pub fn dot(self, other: V3) -> f32 {
