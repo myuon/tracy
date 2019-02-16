@@ -7,7 +7,7 @@ use std::io::{self, BufWriter, Write, BufReader};
 use std::fs;
 use std::ops::{AddAssign, DivAssign, Sub, Add};
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct V3(f32,f32,f32);
 
 impl V3 {
@@ -38,7 +38,7 @@ impl V3 {
     }
 
     fn normalize(&self) -> V3 {
-        self.scale(self.square_norm())
+        self.scale(1.0 / self.norm())
     }
 }
 
@@ -66,7 +66,7 @@ impl Sub for V3 {
     }
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct V3U(V3);
 
 impl V3U {
@@ -190,11 +190,12 @@ impl Object {
         }        
     }
 
-    fn flux_prob(&self, normal: V3U, ray: Ray) -> f32 {
+    fn flux_prob(&self, normal: V3U, ray: &Ray) -> f32 {
         normal.dot(ray.direction) / std::f32::consts::PI
     }
 }
 
+#[derive(Debug)]
 struct Ray {
     origin: V3,
     direction: V3U,
@@ -236,20 +237,21 @@ impl Scene {
             .and_then(|v| v)
     }
 
-    fn calculate_ray(&self, ray: Ray) -> Color {
+    fn calculate_ray(&self, mut ray: Ray) -> Color {
         let mut radiance = Color(0.0, 0.0, 0.0);
         let mut weight = 0.5;
 
         while let Some(record) = self.get_hit_point(&ray) {
             radiance += record.object.lambertian.scale(weight);
             let iflux = record.object.incident_flux(record.point);
-            weight *= record.object.bsdf() * iflux.direction.dot(record.normal) / record.object.flux_prob(record.normal, iflux);
+            weight *= record.object.bsdf() * iflux.direction.dot(record.normal) / record.object.flux_prob(record.normal, &iflux);
 
             let roulette_threshold = 0.5;
-            if !Scene::rossian_roulette(roulette_threshold) {
+            if Scene::rossian_roulette(roulette_threshold) {
                 return radiance;
             }
 
+            ray = iflux;
             weight *= roulette_threshold;
         }
 
@@ -262,12 +264,11 @@ impl Scene {
         let pixel_array = pixels.as_mut_slice();
 
         let from = V3(0.0, 0.0, -1.0 / 2.0 / (fov / 2.0).tan());
-        let aspect_ratio = self.height as f32 / self.width as f32;
 
         for j in 0..self.height {
             for i in 0..self.width {
                 for _ in 0..self.samples_per_pixel {
-                    let point_in_picture = V3(i as f32 / self.width as f32, j as f32 / aspect_ratio, 0.0);
+                    let point_in_picture = V3(i as f32 / self.width as f32 - 0.5, j as f32 / self.width as f32 - (self.height as f32 / self.width as f32 / 2.0), 0.0);
 
                     pixel_array[(i + j * self.width) as usize] += self.calculate_ray(Ray {
                         origin: from,
