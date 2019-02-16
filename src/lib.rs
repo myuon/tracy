@@ -69,18 +69,28 @@ impl Scene {
         let fov: f32 = 90.0;
         let mut pixels = vec![Color::black(); (self.width * self.height) as usize];
         let pixel_array = pixels.as_mut_slice();
+        let world_screen = (30.0 * self.width as f32 / self.height as f32, 30.0);
+        let camera_position = V3(50.0, 52.0, 220.0);
+        let camera_dir = V3U::from_v3(V3(0.0, -0.04, -1.0));
+        let camera_up = V3U::unsafe_new(0.0, 1.0, 0.0);
+        
+        let screen_dist = 40.0;
 
-        let from = V3(0.0, 0.0, -1.0 / 2.0 / (fov / 2.0).tan());
+        let ux = camera_dir.cross(camera_up);
+        let uy = ux.cross(camera_dir);
 
         for j in 0..self.height {
             for i in 0..self.width {
                 for _ in 0..self.samples_per_pixel {
-                    let point_in_picture = V3(i as f32 / self.width as f32 - 0.5, j as f32 / self.width as f32 - (self.height as f32 / self.width as f32 / 2.0), 0.0);
-                    let point_in_picture = point_in_picture + V3(rand::random::<f32>(), rand::random::<f32>(), 0.0).scale(1.0 / self.width as f32);
+                    let point_in_picture
+                        = camera_position
+                        + camera_dir.as_v3().scale(screen_dist)
+                        - ux.as_v3().scale(world_screen.0 * (1.0 - (2.0 * i as f32 + rand::random::<f32>()) / self.width as f32))
+                        + uy.as_v3().scale(world_screen.1 * (1.0 - (2.0 * j as f32 + rand::random::<f32>()) / self.height as f32));
 
                     pixel_array[(i + j * self.width) as usize] += self.calculate_ray(Ray {
-                        origin: from,
-                        direction: V3U::from_v3(point_in_picture - from),
+                        origin: camera_position,
+                        direction: V3U::from_v3(point_in_picture - camera_position),
                     });
                 }
 
