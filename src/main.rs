@@ -1,10 +1,13 @@
 extern crate rand;
+#[macro_use] extern crate serde_derive;
+extern crate serde_yaml;
+extern crate failure;
 
-use std::io::{self, BufWriter, Write};
+use std::io::{self, BufWriter, Write, BufReader};
 use std::fs;
 use std::ops::{AddAssign, DivAssign, Sub, Add};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 struct V3(f32,f32,f32);
 
 impl V3 {
@@ -59,7 +62,7 @@ impl Sub for V3 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 struct Color(f32,f32,f32);
 
 impl Color {
@@ -104,6 +107,7 @@ impl DivAssign<f32> for Color {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 struct Object {
     center: V3,
     radius: f32,
@@ -181,14 +185,15 @@ impl Ray {
     }
 }
 
-struct Screen {
+#[derive(Serialize, Deserialize)]
+struct Scene {
     width: i32,
     height: i32,
     samples_per_pixel: i32,
     objects: Vec<Object>,
 }
 
-impl Screen {
+impl Scene {
     pub fn write(&self, file_path: &str) -> io::Result<()> {
         let pixels = self.render();
 
@@ -220,7 +225,7 @@ impl Screen {
             weight *= record.object.bsdf() * iflux.direction.dot(record.normal) / record.object.flux_prob(record.normal, iflux);
 
             let roulette_threshold = 0.5;
-            if !Screen::rossian_roulette(roulette_threshold) {
+            if !Scene::rossian_roulette(roulette_threshold) {
                 return radiance;
             }
 
@@ -273,19 +278,15 @@ impl Screen {
     }
 }
 
-fn main() {
-    let screen = Screen{
-        width: 200,
-        height: 150,
-        samples_per_pixel: 10,
-        objects: vec![
-            Object{
-                center: V3(0.0, 0.0, 10.0),
-                radius: 1.0,
-                lambertian: Color(1.0, 0.0, 1.0),
-            }
-        ],
-    };
+fn read_scene(path: &str) -> Result<Scene, failure::Error> {
+    let file = fs::File::open(path)?;
+    let reader = BufReader::new(file);
+    let val = serde_yaml::from_reader(reader)?;
 
-    screen.write("./out/image.ppm").unwrap();
+    Ok(val)
+}
+
+fn main() {
+    let scene = read_scene("scene.yml").unwrap();
+    scene.write("./out/image.ppm").unwrap();
 }
