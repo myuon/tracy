@@ -37,9 +37,9 @@ impl Scene {
             .min_by(|r1,r2| r1.at.partial_cmp(&r2.at).unwrap_or(std::cmp::Ordering::Equal))
     }
 
-    fn radiance(&self, record: HitRecord) -> Color {
+    fn radiance(&self, record: HitRecord, depth: i32) -> Color {
         let roulette_threshold = 0.5;
-        if Scene::rossian_roulette(roulette_threshold) {
+        if 5 < depth && depth < 15 && Scene::rossian_roulette(roulette_threshold) {
             return record.object.emission;
         }
 
@@ -48,10 +48,10 @@ impl Scene {
             origin: record.point,
             direction: iflux,
         };
-        
+
         if let Some(record) = self.get_hit_point(&ray) {
             return record.object.emission +
-                record.object.color.blend(self.radiance(record)).scale(1.0 / roulette_threshold);
+                record.object.color.blend(self.radiance(record, depth + 1)).scale(1.0 / roulette_threshold);
         } else {
             return Color::black();
         }
@@ -59,7 +59,7 @@ impl Scene {
 
     fn calculate_ray(&self, ray: Ray) -> Color {
         if let Some(record) = self.get_hit_point(&ray) {
-            self.radiance(record)
+            self.radiance(record, 0)
         } else {
             Color::black()
         }

@@ -45,20 +45,22 @@ impl Object {
         if discriminant > 0.0 {
             let t = -b - discriminant.sqrt();
             if t > 0.0001 {
+                let tc = ray.extend_at(t) - self.center;
                 return Some(HitRecord{
                     at: t,
                     point: ray.extend_at(t),
-                    normal: V3U::from_v3(ray.extend_at(t) - self.center),
+                    normal: V3U::from_v3(if tc.dot(ray.direction.as_v3()) < 0.0 { V3::zero() - tc } else { tc }),
                     object: self,
                 });
             }
 
             let t = -b + discriminant.sqrt();
             if t > 0.0001 {
+                let tc = ray.extend_at(t) - self.center;
                 return Some(HitRecord{
                     at: t,
                     point: ray.extend_at(t),
-                    normal: V3U::from_v3(ray.extend_at(t) - self.center),
+                    normal: V3U::from_v3(if tc.dot(ray.direction.as_v3()) < 0.0 { V3::zero() - tc } else { tc }),
                     object: self,
                 });
             }
