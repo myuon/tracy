@@ -37,6 +37,10 @@ impl Color {
     pub fn blend(self, other: Color) -> Color {
         Color(self.0.elem_multiply(other.0))
     }
+
+    pub fn nan_safe(self) -> Color {
+        Color(self.0.nan_safe())
+    }
 }
 
 impl Add for Color {

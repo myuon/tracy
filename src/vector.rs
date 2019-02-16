@@ -53,6 +53,14 @@ impl V3 {
             self.2 * other.2,
         )
     }
+
+    pub fn nan_safe(self) -> V3 {
+        V3(
+            if self.0.is_nan() { 0.0 } else { self.0 },
+            if self.1.is_nan() { 0.0 } else { self.1 },
+            if self.2.is_nan() { 0.0 } else { self.2 },
+        )
+    }
 }
 
 impl Add for V3 {
