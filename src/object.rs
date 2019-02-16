@@ -71,12 +71,13 @@ impl Object {
     }
 
     pub fn incident_flux(&self, normal: V3U) -> V3U {
-        let u = if normal.x().abs() > 0.001 { V3U::unsafe_new(0.0, 1.0, 0.0) } else { V3U::unsafe_new(0.0, 0.0, 1.0) };
+        let u = if normal.x().abs() > 0.001 { V3U::unsafe_new(0.0, 1.0, 0.0) } else { V3U::unsafe_new(1.0, 0.0, 0.0) };
+        let u = u.cross(normal);
         let v = normal.cross(u);
 
         let theta = (2.0 * rand::random::<f32>() - 1.0) * std::f32::consts::PI / 2.0;
         let phi = 2.0 * std::f32::consts::PI * rand::random::<f32>();
-        let vec = u.as_v3().scale(theta.sin() * phi.cos()) + v.as_v3().scale(theta.sin() * phi.sin()) + normal.as_v3().scale(theta);
+        let vec = u.as_v3().scale(theta.sin() * phi.cos()) + v.as_v3().scale(theta.sin() * phi.sin()) + normal.as_v3().scale(theta.cos());
         
         V3U::unsafe_new(vec.x(), vec.y(), vec.z())
     }
