@@ -1,4 +1,6 @@
 #[macro_use] extern crate serde_derive;
+extern crate quickcheck;
+#[macro_use(quickcheck)] extern crate quickcheck_macros;
 
 pub mod vector;
 pub mod color;

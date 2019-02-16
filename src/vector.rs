@@ -1,5 +1,8 @@
 use std::ops::{Sub, Add};
 
+#[cfg(test)]
+use quickcheck::{Arbitrary, Gen};
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct V3(pub f32, pub f32, pub f32);
 
@@ -120,10 +123,40 @@ impl V3U {
     }
 
     pub fn cross(self, other: V3U) -> V3U {
-        V3U(V3(
+        V3U::from_v3(V3(
             self.y() * other.z() - self.z() * other.y(),
             self.z() * other.x() - self.x() * other.z(),
             self.x() * other.y() - self.y() * other.x(),
         ))
     }
+}
+
+#[cfg(test)]
+impl Arbitrary for V3 {
+    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+        V3(
+            Arbitrary::arbitrary(g),
+            Arbitrary::arbitrary(g),
+            Arbitrary::arbitrary(g),
+        )
+    }
+}
+
+#[cfg(test)]
+impl Arbitrary for V3U {
+    fn arbitrary<G: Gen>(g: &mut G) -> Self {
+        V3U::from_v3(Arbitrary::arbitrary(g))
+    }
+}
+
+#[quickcheck]
+fn v3_normalize_gives_unit_vector(v: V3) -> bool {
+    let r = v.normalize().norm();
+    0.99 <= r && r <= 1.01
+}
+
+#[quickcheck]
+fn v3u_cross_gives_unit_vector(v: V3U, w: V3U) -> bool {
+    let r = v.cross(w).as_v3().norm();
+    0.99 <= r && r <= 1.01
 }
