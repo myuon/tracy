@@ -37,14 +37,14 @@ impl Scene {
 
     fn calculate_ray(&self, mut ray: Ray) -> Color {
         let mut radiance = Color::black();
-        let mut weight = 0.5;
+        let mut weight = Color::new(1.0, 1.0, 1.0);
 
         while let Some(record) = self.get_hit_point(&ray) {
-            radiance += record.object.emission.scale(weight);
+            radiance += record.object.emission.blend(weight);
             radiance = radiance.blend(record.object.color);
 
             let iflux = record.object.incident_flux(record.point);
-            weight *= record.object.bsdf() * iflux.direction.dot(record.normal) / record.object.flux_prob(record.normal, &iflux);
+            weight = weight.blend(record.object.color);
 
             let roulette_threshold = 0.5;
             if Scene::rossian_roulette(roulette_threshold) {

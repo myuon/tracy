@@ -10,6 +10,10 @@ impl Color {
         Color(V3::zero())
     }
 
+    pub fn new(r: f32, g: f32, b: f32) -> Color {
+        Color(V3(r,g,b))
+    }
+
     pub fn red(&self) -> u8 {
         (self.0.x().min(1.0) * 255.0) as u8
     }
