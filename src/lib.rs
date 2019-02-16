@@ -72,6 +72,7 @@ impl Scene {
             for i in 0..self.width {
                 for _ in 0..self.samples_per_pixel {
                     let point_in_picture = V3(i as f32 / self.width as f32 - 0.5, j as f32 / self.width as f32 - (self.height as f32 / self.width as f32 / 2.0), 0.0);
+                    let point_in_picture = point_in_picture + V3(rand::random::<f32>(), rand::random::<f32>(), 0.0).scale(1.0 / self.width as f32);
 
                     pixel_array[(i + j * self.width) as usize] += self.calculate_ray(Ray {
                         origin: from,
