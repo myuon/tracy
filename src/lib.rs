@@ -2,6 +2,8 @@
 extern crate quickcheck;
 #[macro_use(quickcheck)] extern crate quickcheck_macros;
 
+use rayon::prelude::*;
+
 pub mod vector;
 pub mod color;
 pub mod object;
@@ -142,7 +144,7 @@ impl Scene {
         let ux = camera_dir.cross(camera_up);
         let uy = ux.cross(camera_dir);
 
-        (0..self.width * self.height).map(move |k: i32| {
+        (0..self.width * self.height).into_par_iter().map(move |k: i32| {
             let j = k / self.width;
             let i = k % self.width;
 
