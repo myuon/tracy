@@ -75,66 +75,65 @@ impl Scene {
         true
     }
 
-    fn radiance(&self, record: HitRecord, depth: i32, tmin: f32, tmax: f32) -> Color {
-        let roulette_threshold =
-            if depth <= 5 { 1.0 }
-            else if depth < 64 { record.object.color.as_v3().0.max(record.object.color.as_v3().1.max(record.object.color.as_v3().2)) }
-            else { record.object.color.as_v3().0.max(record.object.color.as_v3().1.max(record.object.color.as_v3().2)) * 0.5f32.powi(depth - 64) };
-        if Scene::rossian_roulette(roulette_threshold) {
-            return record.object.emission;
-        }
-
+    fn calculate_ray(&self, mut ray: Ray, tmin: f32, tmax: f32) -> Color {
+        let mut weight = Color::new(0.5, 0.5, 0.5);
         let mut radiance = Color::black();
+        let mut depth = 0;
 
-        // Next Event Estimation
-        let light_object = self.pick_random_light();
-        let vec_to_light_center = V3U::from_v3(record.point - light_object.center);
-        let (light_point, light_normal) = {
-            let sampling_vector = Object::incident_flux(vec_to_light_center);
-            
-            (
-                light_object.center + sampling_vector.as_v3().scale(light_object.radius),
-                sampling_vector,
-            )
-        };
+        while let Some(record) = self.get_hit_point(&ray, tmin, tmax) {
+            radiance += weight.blend(record.object.emission);
 
-        let light_distance = light_point - record.point;
-        let shadow_ray = Ray {
-            origin: record.point,
-            direction: V3U::from_v3(light_distance),
-        };
-        if self.is_transported(&shadow_ray, 1.0, light_distance.norm() - 1.0) {
-            let g = shadow_ray.direction.dot(light_normal).abs() * shadow_ray.direction.dot(record.normal).abs() / light_distance.square_norm();
-            radiance += record.object.color
-                .blend(light_object.emission)
-                .scale(g / vec_to_light_center.dot(light_normal));
-        }
+            // Next Event Estimation
+            let light_object = self.pick_random_light();
+            let vec_to_light_center = V3U::from_v3(record.point - light_object.center);
+            let (light_point, light_normal) = {
+                let sampling_vector = Object::incident_flux(vec_to_light_center);
+                
+                (
+                    light_object.center + sampling_vector.as_v3().scale(light_object.radius),
+                    sampling_vector,
+                )
+            };
 
-        let iflux = Object::incident_flux(record.normal);
-        let ray = Ray {
-            origin: record.point,
-            direction: iflux,
-        };
+            let light_distance = light_point - record.point;
+            let shadow_ray = Ray {
+                origin: record.point,
+                direction: V3U::from_v3(light_distance),
+            };
+            if self.is_transported(&shadow_ray, 1.0, light_distance.norm() - 1.0) {
+                let g = shadow_ray.direction.dot(light_normal).abs() * shadow_ray.direction.dot(record.normal).abs() / light_distance.square_norm();
+                radiance += record.object.color
+                    .blend(light_object.emission)
+                    .scale(g / vec_to_light_center.dot(light_normal))
+                    .blend(weight);
+            }
 
-        // radiance calculation
-        if let Some(record) = self.get_hit_point(&ray, tmin, tmax) {
-            let weight = record.object.color.scale(1.0 / roulette_threshold);
-            radiance += record.object.emission + self.radiance(record, depth + 1, tmin, tmax).blend(weight);
+            // If the object is a sphere using importance sampling, weight should be...
+            weight = weight.blend(record.object.color);
+
+            let roulette_threshold =
+                if depth < 5 { 1.0 }
+                else if depth < 64 { record.object.color.as_v3().0.max(record.object.color.as_v3().1.max(record.object.color.as_v3().2)) }
+                else { record.object.color.as_v3().0.max(record.object.color.as_v3().1.max(record.object.color.as_v3().2)) * 0.5f32.powi(depth - 64) };
+            if Scene::rossian_roulette(roulette_threshold) {
+                break;
+            }
+
+            depth += 1;
+
+            let iflux = Object::incident_flux(record.normal);
+            ray = Ray {
+                origin: record.point,
+                direction: iflux,
+            };
+
+            weight = weight.scale(1.0 / roulette_threshold);
         }
 
         radiance
     }
 
-    fn calculate_ray(&self, ray: Ray, tmin: f32, tmax: f32) -> Color {
-        if let Some(record) = self.get_hit_point(&ray, tmin, tmax) {
-            self.radiance(record, 0, tmin, tmax)
-        } else {
-            Color::black()
-        }
-    }
-
     fn render(&self) -> Vec<Color> {
-        let fov: f32 = 90.0;
         let world_screen = (30.0 * self.width as f32 / self.height as f32, 30.0);
         let camera_position = V3(50.0, 52.0, 120.0);
         let camera_dir = V3U::from_v3(V3(0.0, -0.04, -1.0));
