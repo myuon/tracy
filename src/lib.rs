@@ -38,8 +38,11 @@ impl Scene {
     }
 
     fn radiance(&self, record: HitRecord, depth: i32) -> Color {
-        let roulette_threshold = 0.5;
-        if 5 < depth && depth < 15 && Scene::rossian_roulette(roulette_threshold) {
+        let roulette_threshold =
+            if depth <= 5 { 1.0 }
+            else if depth < 64 { record.object.color.as_v3().0.max(record.object.color.as_v3().1.max(record.object.color.as_v3().2)) }
+            else { record.object.color.as_v3().0.max(record.object.color.as_v3().1.max(record.object.color.as_v3().2)) * 0.5f32.powi(depth - 64) };
+        if Scene::rossian_roulette(roulette_threshold) {
             return record.object.emission;
         }
 

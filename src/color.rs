@@ -45,6 +45,10 @@ impl Color {
     pub fn nan_safe(self) -> Color {
         Color(self.0.nan_safe())
     }
+
+    pub fn as_v3(self) -> V3 {
+        self.0
+    }
 }
 
 impl Add for Color {
