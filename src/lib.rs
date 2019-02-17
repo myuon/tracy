@@ -88,25 +88,26 @@ impl Scene {
 
         // Next Event Estimation
         let light_object = self.pick_random_light();
-        let light_point = {
-            let theta = 2.0 * std::f32::consts::PI * rand::random::<f32>();
-            let phi = 2.0 * std::f32::consts::PI * rand::random::<f32>();
-
-            let p = V3(
-                theta.cos() * phi.sin(),
-                theta.cos() * phi.cos(),
-                theta.sin(),
-            );
+        let vec_to_light_center = V3U::from_v3(record.point - light_object.center);
+        let (light_point, light_normal) = {
+            let sampling_vector = Object::incident_flux(vec_to_light_center);
             
-            p.scale(light_object.radius) + light_object.center
+            (
+                light_object.center + sampling_vector.as_v3().scale(light_object.radius),
+                sampling_vector,
+            )
         };
+
         let light_distance = light_point - record.point;
         let shadow_ray = Ray {
             origin: record.point,
             direction: V3U::from_v3(light_distance),
         };
-        if self.is_transported(&shadow_ray, 0.0001, light_distance.norm() - 1.0) {
-            radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal).abs() / light_distance.norm());
+        if self.is_transported(&shadow_ray, 1.0, light_distance.norm() - 1.0) {
+            let g = shadow_ray.direction.dot(light_normal).abs() * shadow_ray.direction.dot(record.normal).abs() / light_distance.square_norm();
+            radiance += record.object.color
+                .blend(light_object.emission)
+                .scale(g / vec_to_light_center.dot(light_normal));
         }
 
         let iflux = Object::incident_flux(record.normal);

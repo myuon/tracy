@@ -73,6 +73,7 @@ impl Object {
         self.emission.scale(1.0 / std::f32::consts::PI)
     }
 
+    // importance sampling for a sphere
     pub fn incident_flux(normal: V3U) -> V3U {
         let u = if normal.x().abs() > 0.001 { V3U::unsafe_new(0.0, 1.0, 0.0) } else { V3U::unsafe_new(1.0, 0.0, 0.0) };
         let u = u.cross(normal);
@@ -93,5 +94,5 @@ impl Object {
 #[quickcheck]
 fn incident_flux_is_inside_the_hemisphere(normal: V3U) -> bool {
     let r = Object::incident_flux(normal);
-    normal.dot(r) >= 0.0
+    0.0 <= normal.dot(r) && 0.99 <= r.as_v3().norm() && r.as_v3().norm() <= 1.01
 }
