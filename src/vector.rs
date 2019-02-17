@@ -3,7 +3,7 @@ use std::ops::{Sub, Add};
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub struct V3(pub f32, pub f32, pub f32);
 
 impl V3 {

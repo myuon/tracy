@@ -32,7 +32,7 @@ pub struct Scene {
 
 impl Scene {
     pub fn new(data: SceneData) -> Scene {
-        let lights = data.objects.iter().enumerate().filter(|(_,obj)| obj.emission != Color::black()).map(|p| p.0).collect();
+        let lights = data.objects.iter().enumerate().filter(|(_,obj)| obj.emission > Color::black()).map(|p| p.0).collect();
 
         Scene {
             width: data.width,
@@ -59,23 +59,23 @@ impl Scene {
         rand::random::<f32>() > threshold
     }
 
-    fn get_hit_point(&self, ray: &Ray) -> Option<HitRecord> {
+    fn get_hit_point(&self, ray: &Ray, tmin: f32, tmax: f32) -> Option<HitRecord> {
         self.objects.iter()
-            .flat_map(|obj| obj.check_hit(ray))
+            .flat_map(|obj| obj.check_hit(ray, tmin, tmax))
             .min_by(|r1,r2| r1.at.partial_cmp(&r2.at).unwrap_or(std::cmp::Ordering::Equal))
     }
 
-    fn is_transported(&self, ray: &Ray, tmax: f32) -> bool {
-        if let Some(record) = self.get_hit_point(ray) {
+    fn is_transported(&self, ray: &Ray, tmin: f32, tmax: f32) -> bool {
+        if let Some(record) = self.get_hit_point(ray, tmin, tmax) {
             if record.at < tmax {
-                return true;
+                return false;
             }
         }
 
-        false
+        true
     }
 
-    fn radiance(&self, record: HitRecord, depth: i32) -> Color {
+    fn radiance(&self, record: HitRecord, depth: i32, tmin: f32, tmax: f32) -> Color {
         let roulette_threshold =
             if depth <= 5 { 1.0 }
             else if depth < 64 { record.object.color.as_v3().0.max(record.object.color.as_v3().1.max(record.object.color.as_v3().2)) }
@@ -105,8 +105,8 @@ impl Scene {
             origin: record.point,
             direction: V3U::from_v3(light_distance),
         };
-        if self.is_transported(&shadow_ray, light_distance.norm() - 0.001) {
-            //radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal).abs() / light_distance.norm());
+        if self.is_transported(&shadow_ray, 0.0001, light_distance.norm() - 1.0) {
+            radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal).abs() / light_distance.norm());
         }
 
         let iflux = Object::incident_flux(record.normal);
@@ -116,17 +116,17 @@ impl Scene {
         };
 
         // radiance calculation
-        if let Some(record) = self.get_hit_point(&ray) {
+        if let Some(record) = self.get_hit_point(&ray, tmin, tmax) {
             let weight = record.object.color.scale(1.0 / roulette_threshold);
-            radiance += record.object.emission + self.radiance(record, depth + 1).blend(weight);
+            radiance += record.object.emission + self.radiance(record, depth + 1, tmin, tmax).blend(weight);
         }
 
         radiance
     }
 
-    fn calculate_ray(&self, ray: Ray) -> Color {
-        if let Some(record) = self.get_hit_point(&ray) {
-            self.radiance(record, 0)
+    fn calculate_ray(&self, ray: Ray, tmin: f32, tmax: f32) -> Color {
+        if let Some(record) = self.get_hit_point(&ray, tmin, tmax) {
+            self.radiance(record, 0, tmin, tmax)
         } else {
             Color::black()
         }
@@ -158,7 +158,7 @@ impl Scene {
                 self.calculate_ray(Ray {
                     origin: camera_position,
                     direction: V3U::from_v3(point_in_picture - camera_position),
-                })
+                }, 0.0001, 10000000.0)
             }).fold(Color::black(), |c1,c2| c1 + c2).scale(1.0 / self.samples_per_pixel as f32)
         }).collect::<Vec<_>>()
     }

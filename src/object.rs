@@ -36,7 +36,7 @@ pub struct HitRecord<'a> {
 }
 
 impl Object {
-    pub fn check_hit(&self, ray: &Ray) -> Option<HitRecord> {
+    pub fn check_hit(&self, ray: &Ray, tmin: f32, tmax: f32) -> Option<HitRecord> {
         let oc = ray.origin - self.center;
         let b = ray.direction.as_v3().dot(oc);
         let c = oc.square_norm() - self.radius*self.radius;
@@ -44,7 +44,7 @@ impl Object {
 
         if discriminant > 0.0 {
             let t = -b - discriminant.sqrt();
-            if t > 0.0001 {
+            if tmin < t && t < tmax {
                 let tc = ray.extend_at(t) - self.center;
                 return Some(HitRecord{
                     at: t,
@@ -55,7 +55,7 @@ impl Object {
             }
 
             let t = -b + discriminant.sqrt();
-            if t > 0.0001 {
+            if tmin < t && t < tmax {
                 let tc = ray.extend_at(t) - self.center;
                 return Some(HitRecord{
                     at: t,
@@ -81,7 +81,7 @@ impl Object {
         let phi = 2.0 * std::f32::consts::PI * rand::random::<f32>();
         let cos_theta = rand::random::<f32>().sqrt();
         let vec = u.as_v3().scale(phi.cos() * cos_theta) + v.as_v3().scale(phi.sin() * cos_theta) + normal.as_v3().scale((1.0 - cos_theta * cos_theta).sqrt());
-        
+
         V3U::unsafe_new(vec.x(), vec.y(), vec.z())
     }
 

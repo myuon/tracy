@@ -2,7 +2,7 @@
 use std::ops::{Add, AddAssign, DivAssign};
 use crate::vector::V3;
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Color(V3);
 
 impl Color {
