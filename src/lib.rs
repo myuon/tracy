@@ -104,7 +104,7 @@ impl Scene {
             direction: V3U::from_v3(light_distance),
         };
         if self.is_transported(&shadow_ray, light_distance.norm() - 0.001) {
-            radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal).abs() / light_distance.norm());
+            //radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal).abs() / light_distance.norm());
         }
 
         let iflux = Object::incident_flux(record.normal);
@@ -132,10 +132,8 @@ impl Scene {
 
     fn render(&self) -> Vec<Color> {
         let fov: f32 = 90.0;
-        let mut pixels = vec![Color::black(); (self.width * self.height) as usize];
-        let pixel_array = pixels.as_mut_slice();
         let world_screen = (30.0 * self.width as f32 / self.height as f32, 30.0);
-        let camera_position = V3(50.0, 52.0, 220.0);
+        let camera_position = V3(50.0, 52.0, 120.0);
         let camera_dir = V3U::from_v3(V3(0.0, -0.04, -1.0));
         let camera_up = V3U::unsafe_new(0.0, 1.0, 0.0);
         
@@ -144,26 +142,23 @@ impl Scene {
         let ux = camera_dir.cross(camera_up);
         let uy = ux.cross(camera_dir);
 
-        for j in 0..self.height {
-            for i in 0..self.width {
-                for _ in 0..self.samples_per_pixel {
-                    let point_in_picture
-                        = camera_position
-                        + camera_dir.as_v3().scale(screen_dist)
-                        - ux.as_v3().scale(world_screen.0 * (1.0 - (2.0 * i as f32 + rand::random::<f32>()) / self.width as f32))
-                        + uy.as_v3().scale(world_screen.1 * (1.0 - (2.0 * j as f32 + rand::random::<f32>()) / self.height as f32));
+        (0..self.width * self.height).map(move |k: i32| {
+            let j = k / self.width;
+            let i = k % self.width;
 
-                    pixel_array[(i + j * self.width) as usize] += self.calculate_ray(Ray {
-                        origin: camera_position,
-                        direction: V3U::from_v3(point_in_picture - camera_position),
-                    });
-                }
+            (0..self.samples_per_pixel).map(|_: i32| {
+                let point_in_picture
+                    = camera_position
+                    + camera_dir.as_v3().scale(screen_dist)
+                    - ux.as_v3().scale(world_screen.0 * (1.0 - (2.0 * i as f32 + rand::random::<f32>()) / self.width as f32))
+                    + uy.as_v3().scale(world_screen.1 * (1.0 - (2.0 * j as f32 + rand::random::<f32>()) / self.height as f32));
 
-                pixel_array[(i + j * self.width) as usize] /= self.samples_per_pixel as f32;
-            }
-        }
-
-        pixels
+                self.calculate_ray(Ray {
+                    origin: camera_position,
+                    direction: V3U::from_v3(point_in_picture - camera_position),
+                })
+            }).fold(Color::black(), |c1,c2| c1 + c2).scale(1.0 / self.samples_per_pixel as f32)
+        }).collect::<Vec<_>>()
     }
 
     fn write_ppm(&self, file_path: &str, pixels: Vec<Color>) -> io::Result<()> {
