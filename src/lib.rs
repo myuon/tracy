@@ -104,7 +104,7 @@ impl Scene {
             direction: V3U::from_v3(light_distance),
         };
         if self.is_transported(&shadow_ray, light_distance.norm() - 0.001) {
-            radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal) / light_distance.norm());
+            radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal).abs() / light_distance.norm());
         }
 
         let iflux = Object::incident_flux(record.normal);
