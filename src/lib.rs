@@ -13,18 +13,44 @@ use std::io::{self, BufWriter, Write};
 use std::fs;
 
 #[derive(Serialize, Deserialize)]
-pub struct Scene {
+pub struct SceneData {
     width: i32,
     height: i32,
     samples_per_pixel: i32,
     objects: Vec<Object>,
 }
 
+pub struct Scene {
+    width: i32,
+    height: i32,
+    samples_per_pixel: i32,
+    objects: Vec<Object>,
+    lights: Vec<usize>,
+}
+
 impl Scene {
+    pub fn new(data: SceneData) -> Scene {
+        let lights = data.objects.iter().enumerate().filter(|(_,obj)| obj.emission != Color::black()).map(|p| p.0).collect();
+
+        Scene {
+            width: data.width,
+            height: data.height,
+            samples_per_pixel: data.samples_per_pixel,
+            objects: data.objects,
+            lights: lights,
+        }
+    }
+
     pub fn write(&self, file_path: &str) -> io::Result<()> {
         let pixels = self.render();
 
         self.write_ppm(file_path, pixels)
+    }
+
+    fn pick_random_light(&self) -> &Object {
+        let r = rand::random::<usize>();
+        let i = self.lights[r % self.lights.len()];
+        &self.objects[i]
     }
 
     fn rossian_roulette(threshold: f32) -> bool {
@@ -37,6 +63,16 @@ impl Scene {
             .min_by(|r1,r2| r1.at.partial_cmp(&r2.at).unwrap_or(std::cmp::Ordering::Equal))
     }
 
+    fn is_transported(&self, ray: &Ray, tmax: f32) -> bool {
+        if let Some(record) = self.get_hit_point(ray) {
+            if record.at < tmax {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn radiance(&self, record: HitRecord, depth: i32) -> Color {
         let roulette_threshold =
             if depth <= 5 { 1.0 }
@@ -46,18 +82,44 @@ impl Scene {
             return record.object.emission;
         }
 
+        let mut radiance = Color::black();
+
+        // Next Event Estimation
+        let light_object = self.pick_random_light();
+        let light_point = {
+            let theta = 2.0 * std::f32::consts::PI * rand::random::<f32>();
+            let phi = 2.0 * std::f32::consts::PI * rand::random::<f32>();
+
+            let p = V3(
+                theta.cos() * phi.sin(),
+                theta.cos() * phi.cos(),
+                theta.sin(),
+            );
+            
+            p.scale(light_object.radius) + light_object.center
+        };
+        let light_distance = light_point - record.point;
+        let shadow_ray = Ray {
+            origin: record.point,
+            direction: V3U::from_v3(light_distance),
+        };
+        if self.is_transported(&shadow_ray, light_distance.norm() - 0.001) {
+            radiance += record.object.color.blend(light_object.emission).scale(shadow_ray.direction.dot(record.normal) / light_distance.norm());
+        }
+
         let iflux = Object::incident_flux(record.normal);
         let ray = Ray {
             origin: record.point,
             direction: iflux,
         };
 
+        // radiance calculation
         if let Some(record) = self.get_hit_point(&ray) {
-            return record.object.emission +
-                record.object.color.blend(self.radiance(record, depth + 1)).scale(1.0 / roulette_threshold);
-        } else {
-            return Color::black();
+            let weight = record.object.color.scale(1.0 / roulette_threshold);
+            radiance += record.object.emission + self.radiance(record, depth + 1).blend(weight);
         }
+
+        radiance
     }
 
     fn calculate_ray(&self, ray: Ray) -> Color {

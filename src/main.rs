@@ -11,7 +11,7 @@ fn read_scene(path: &str) -> Result<Scene, failure::Error> {
     let reader = BufReader::new(file);
     let val = serde_yaml::from_reader(reader)?;
 
-    Ok(val)
+    Ok(Scene::new(val))
 }
 
 fn main() {

@@ -69,8 +69,8 @@ impl Object {
         None
     }
 
-    pub fn bsdf(&self) -> f32 {
-        1.0 / std::f32::consts::PI
+    pub fn bsdf(&self) -> Color {
+        self.emission.scale(1.0 / std::f32::consts::PI)
     }
 
     pub fn incident_flux(normal: V3U) -> V3U {
